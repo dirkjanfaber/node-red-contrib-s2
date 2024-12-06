@@ -1,37 +1,15 @@
-import * as fs from 'fs/promises';
-import * as path from 'path';
-import { parse } from 'yaml';
-import { generateTypeScriptTypes } from './type-generator.js';
-import { generateNodeDefinition, type ControlType, type GeneratedNode } from './node-generator.js';
-import { fileURLToPath } from 'url';
+// src/generator/index.ts
+const fs = require('fs/promises');
+const path = require('path');
+const { parse } = require('yaml');
+const { generateTypeScriptTypes } = require('./type-generator');
+const { generateNodeDefinition } = require('./node-generator');
+import type { AsyncAPISpec, ControlType } from './types';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const PROJECT_ROOT = path.resolve(__dirname, '../..');
 const PROTOCOL_DIR = path.join(PROJECT_ROOT, 'ext/s2-ws-jsone/s2-asyncapi');
 const OUTPUT_DIR = path.join(PROJECT_ROOT, 'src/nodes');
 const TYPES_DIR = path.join(PROJECT_ROOT, 'src/types');
-
-interface AsyncAPISpec {
-  channels: {
-    default: {
-      subscribe: {
-        message: {
-          oneOf: Array<{$ref: string}>;
-        };
-      };
-      publish: {
-        message: {
-          oneOf: Array<{$ref: string}>;
-        };
-      };
-    };
-  };
-  components: {
-    schemas: Record<string, any>;
-    messages: Record<string, any>;
-  };
-}
 
 async function readYamlFile(filePath: string): Promise<AsyncAPISpec> {
   const content = await fs.readFile(filePath, 'utf-8');
@@ -92,9 +70,9 @@ async function generateNodes(spec: AsyncAPISpec): Promise<void> {
     );
 
     // Generate Node-RED node definition
-    const nodeDef: GeneratedNode = generateNodeDefinition(spec, controlType, messages);
+    const nodeDef = generateNodeDefinition(spec, controlType, messages);
     await fs.writeFile(
-      path.join(OUTPUT_DIR, `s2-rm-${controlType.toLowerCase()}.cjs`),
+      path.join(OUTPUT_DIR, `s2-rm-${controlType.toLowerCase()}.js`),
       nodeDef.js
     );
     await fs.writeFile(

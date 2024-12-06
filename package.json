@@ -2,6 +2,7 @@
   "name": "node-red-contrib-s2",
   "version": "0.1.0",
   "description": "Node-RED nodes for S2 protocol implementation",
+  "type": "commonjs",
   "scripts": {
     "build": "tsc",
     "generate": "ts-node-esm src/generator/index.ts",
@@ -28,12 +29,11 @@
   ],
   "node-red": {
     "nodes": {
-      "s2-rm-OMBC": "src/nodes/s2-rm-ombc.cjs",
-      "s2-rm-DDBC": "src/nodes/s2-rm-ddbc.cjs",
-      "s2-rm-PEBC": "src/nodes/s2-rm-pebc.cjs",
-      "s2-rm-PPBC": "src/nodes/s2-rm-ppbc.cjs",
-      "s2-rm-FRBC": "src/nodes/s2-rm-frbc.cjs",
-      "lower-case": "src/nodes/lower-case.cjs"
+      "s2-rm-OMBC": "src/nodes/s2-rm-ombc.js",
+      "s2-rm-DDBC": "src/nodes/s2-rm-ddbc.js",
+      "s2-rm-PEBC": "src/nodes/s2-rm-pebc.js",
+      "s2-rm-PPBC": "src/nodes/s2-rm-ppbc.js",
+      "s2-rm-FRBC": "src/nodes/s2-rm-frbc.js"
     }
   }
 }

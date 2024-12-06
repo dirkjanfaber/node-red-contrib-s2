@@ -1,21 +1,6 @@
 // src/generator/node-generator.ts
-
-import { Node, NodeDef } from 'node-red';
-
-export type ControlType = 'OMBC' | 'PEBC' | 'PPBC' | 'FRBC' | 'DDBC';
-
-export interface GeneratedNode {
-  js: string;
-  html: string;
-}
-
-interface MessageDefinition {
-  payload: {
-    type: string;
-    properties: Record<string, any>;
-    required: string[];
-  };
-}
+const { Node, NodeDef } = require('node-red');
+import type { ControlType, GeneratedNode, MessageDefinition } from './types';
 
 function isControlType(type: string): type is ControlType {
   return ['OMBC', 'PEBC', 'PPBC', 'FRBC', 'DDBC'].includes(type);
@@ -24,50 +9,6 @@ function isControlType(type: string): type is ControlType {
 function getMessageControlType(name: string): ControlType | null {
   const prefix = name.split('.')[0] as string;
   return isControlType(prefix) ? prefix : null;
-}
-
-export function generateNodeDefinition(
-  spec: any, 
-  controlType: ControlType,
-  messages: Record<string, MessageDefinition>
-): GeneratedNode {
-  return {
-    js: generateNodeImplementation(controlType, messages),
-    html: generateNodeHtml(controlType, messages)
-  };
-}
-
-function generateNodeImplementation(
-  controlType: ControlType,
-  messages: Record<string, MessageDefinition>
-): string {
-  const controlMessages = Object.entries(messages)
-    .filter(([name]) => name.startsWith(controlType));
-  
-  return `
-module.exports = function(RED) {
-    function S2${controlType}Node(config) {
-        RED.nodes.createNode(this, config);
-        const node = this;
-
-        node.resourceId = config.resourceId || \`${controlType.toLowerCase()}-\${Date.now()}\`;
-        node.currentState = {};
-
-        node.on('input', function(msg) {
-            const messageType = msg.payload?.message_type;
-            
-            switch(messageType) {
-                ${generateMessageHandlers(controlMessages)}
-                default:
-                    node.error(\`Unsupported message type: \${messageType}\`);
-            }
-        });
-
-        ${generateInitialSetup(controlType)}
-    }
-
-    RED.nodes.registerType("s2-rm-${controlType.toLowerCase()}", S2${controlType}Node);
-}`;
 }
 
 function generateMessageHandlers(messages: [string, MessageDefinition][]): string {
@@ -107,54 +48,6 @@ function generateInitialSetup(controlType: ControlType): string {
     default:
       return '// No initial setup required';
   }
-}
-
-function generateNodeHtml(
-  controlType: ControlType,
-  messages: Record<string, MessageDefinition>
-): string {
-  const properties = generatePropertiesForControlType(controlType);
-  const category = 'S2 Protocol';
-  const color = getColorForControlType(controlType);
-
-  return `
-<script type="text/html" data-template-name="s2-rm-${controlType.toLowerCase()}">
-    <div class="form-row">
-        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
-        <input type="text" id="node-input-name" placeholder="Name">
-    </div>
-    <div class="form-row">
-        <label for="node-input-resourceId"><i class="fa fa-id-card"></i> Resource ID</label>
-        <input type="text" id="node-input-resourceId" placeholder="Resource ID">
-    </div>
-    ${properties.html}
-</script>
-
-<script type="text/html" data-help-name="s2-rm-${controlType.toLowerCase()}">
-    <p>A Resource Manager node implementing the ${controlType} control type of the S2 protocol.</p>
-    ${generateHelpText(controlType)}
-</script>
-
-<script type="text/javascript">
-    RED.nodes.registerType('s2-rm-${controlType.toLowerCase()}',{
-        category: '${category}',
-        color: '${color}',
-        defaults: {
-            name: { value: "" },
-            resourceId: { value: "", required: true },
-            ${properties.defaults}
-        },
-        inputs:1,
-        outputs:1,
-        icon: "s2.png",
-        label: function() {
-            return this.name || "S2 ${controlType} RM";
-        },
-        oneditprepare: function() {
-            ${properties.oneditprepare}
-        }
-    });
-</script>`;
 }
 
 function generatePropertiesForControlType(controlType: ControlType): {
@@ -274,6 +167,17 @@ function generatePropertiesForControlType(controlType: ControlType): {
   }
 }
 
+function getColorForControlType(controlType: ControlType): string {
+  const colors: Record<ControlType, string> = {
+    'OMBC': '#87A980',
+    'PEBC': '#A9A980',
+    'PPBC': '#A98087',
+    'FRBC': '#80A987',
+    'DDBC': '#8780A9'
+  };
+  return colors[controlType];
+}
+
 function generateHelpText(controlType: ControlType): string {
   const descriptions: Record<ControlType, string> = {
     'OMBC': 'Operation Mode Based Control allows external control of device operation modes.',
@@ -293,13 +197,101 @@ function generateHelpText(controlType: ControlType): string {
 </dl>`;
 }
 
-function getColorForControlType(controlType: ControlType): string {
-  const colors: Record<ControlType, string> = {
-    'OMBC': '#87A980',
-    'PEBC': '#A9A980',
-    'PPBC': '#A98087',
-    'FRBC': '#80A987',
-    'DDBC': '#8780A9'
-  };
-  return colors[controlType];
+function generateNodeImplementation(
+  controlType: ControlType,
+  messages: Record<string, MessageDefinition>
+): string {
+  const controlMessages = Object.entries(messages)
+    .filter(([name]) => name.startsWith(controlType));
+  
+  // Add 'use strict' and ensure we're using CommonJS module format
+  return `'use strict';
+
+// CommonJS module for Node-RED node
+module.exports = function(RED) {
+    function S2${controlType}Node(config) {
+        RED.nodes.createNode(this, config);
+        const node = this;
+
+        node.resourceId = config.resourceId || \`${controlType.toLowerCase()}-\${Date.now()}\`;
+        node.currentState = {};
+
+        node.on('input', function(msg) {
+            const messageType = msg.payload?.message_type;
+            
+            switch(messageType) {
+                ${generateMessageHandlers(controlMessages)}
+                default:
+                    node.error(\`Unsupported message type: \${messageType}\`);
+            }
+        });
+
+        ${generateInitialSetup(controlType)}
+    }
+
+    RED.nodes.registerType("s2-rm-${controlType.toLowerCase()}", S2${controlType}Node);
 }
+`;
+}
+
+function generateNodeHtml(
+  controlType: ControlType,
+  messages: Record<string, MessageDefinition>
+): string {
+  const properties = generatePropertiesForControlType(controlType);
+  const category = 'S2 Protocol';
+  const color = getColorForControlType(controlType);
+
+  return `
+<script type="text/html" data-template-name="s2-rm-${controlType.toLowerCase()}">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-resourceId"><i class="fa fa-id-card"></i> Resource ID</label>
+        <input type="text" id="node-input-resourceId" placeholder="Resource ID">
+    </div>
+    ${properties.html}
+</script>
+
+<script type="text/html" data-help-name="s2-rm-${controlType.toLowerCase()}">
+    <p>A Resource Manager node implementing the ${controlType} control type of the S2 protocol.</p>
+    ${generateHelpText(controlType)}
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType('s2-rm-${controlType.toLowerCase()}',{
+        category: '${category}',
+        color: '${color}',
+        defaults: {
+            name: { value: "" },
+            resourceId: { value: "", required: true },
+            ${properties.defaults}
+        },
+        inputs:1,
+        outputs:1,
+        icon: "s2.png",
+        label: function() {
+            return this.name || "S2 ${controlType} RM";
+        },
+        oneditprepare: function() {
+            ${properties.oneditprepare}
+        }
+    });
+</script>`;
+}
+
+function generateNodeDefinition(
+  spec: any, 
+  controlType: ControlType,
+  messages: Record<string, MessageDefinition>
+): GeneratedNode {
+  return {
+    js: generateNodeImplementation(controlType, messages),
+    html: generateNodeHtml(controlType, messages)
+  };
+}
+
+// Export the main function
+exports.generateNodeDefinition = generateNodeDefinition;

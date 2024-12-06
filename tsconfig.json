@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "ES2020",
-    "moduleResolution": "bundler",
+    "module": "CommonJS",
+    "moduleResolution": "node10",
     "esModuleInterop": true,
     "outDir": "./dist",
     "rootDir": "./src",
@@ -12,11 +12,9 @@
     "baseUrl": ".",
     "paths": {
       "*": ["node_modules/*", "src/*"]
-    }
-  },
-  "ts-node": {
-    "esm": true,
-    "experimentalSpecifierResolution": "node"
+    },
+    "allowJs": true,
+    "resolveJsonModule": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "**/*.spec.ts"]
