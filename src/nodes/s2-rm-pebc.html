@@ -1,0 +1,55 @@
+
+<script type="text/html" data-template-name="s2-rm-pebc">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-resourceId"><i class="fa fa-id-card"></i> Resource ID</label>
+        <input type="text" id="node-input-resourceId" placeholder="Resource ID">
+    </div>
+    
+    <div class="form-row">
+        <label for="node-input-limitRanges"><i class="fa fa-bars"></i> Limit Ranges</label>
+        <input type="text" id="node-input-limitRanges">
+    </div>
+</script>
+
+<script type="text/html" data-help-name="s2-rm-pebc">
+    <p>A Resource Manager node implementing the PEBC control type of the S2 protocol.</p>
+    <p>Power Envelope Based Control manages power consumption within defined limits.</p>
+<h3>Inputs</h3>
+<dl class="message-properties">
+    <dt>payload
+        <span class="property-type">object</span>
+    </dt>
+    <dd>The S2 protocol message object.</dd>
+</dl>
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType('s2-rm-pebc',{
+        category: 'S2 Protocol',
+        color: '#A9A980',
+        defaults: {
+            name: { value: "" },
+            resourceId: { value: "", required: true },
+            
+            limitRanges: { value: [], required: true },
+            consequenceType: { value: "DEFER" }
+        },
+        inputs:1,
+        outputs:1,
+        icon: "s2.png",
+        label: function() {
+            return this.name || "S2 PEBC RM";
+        },
+        oneditprepare: function() {
+            
+            $('#node-input-limitRanges').typedInput({
+                type: 'json',
+                types: ['json']
+            });
+        }
+    });
+</script>

@@ -1,0 +1,63 @@
+
+<script type="text/html" data-template-name="s2-rm-frbc">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-resourceId"><i class="fa fa-id-card"></i> Resource ID</label>
+        <input type="text" id="node-input-resourceId" placeholder="Resource ID">
+    </div>
+    
+    <div class="form-row">
+        <label for="node-input-storage"><i class="fa fa-database"></i> Storage</label>
+        <input type="text" id="node-input-storage">
+    </div>
+    <div class="form-row">
+        <label for="node-input-actuators"><i class="fa fa-cogs"></i> Actuators</label>
+        <input type="text" id="node-input-actuators">
+    </div>
+</script>
+
+<script type="text/html" data-help-name="s2-rm-frbc">
+    <p>A Resource Manager node implementing the FRBC control type of the S2 protocol.</p>
+    <p>Fill Rate Based Control manages storage systems like batteries.</p>
+<h3>Inputs</h3>
+<dl class="message-properties">
+    <dt>payload
+        <span class="property-type">object</span>
+    </dt>
+    <dd>The S2 protocol message object.</dd>
+</dl>
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType('s2-rm-frbc',{
+        category: 'S2 Protocol',
+        color: '#80A987',
+        defaults: {
+            name: { value: "" },
+            resourceId: { value: "", required: true },
+            
+            storage: { value: {}, required: true },
+            actuators: { value: [], required: true }
+        },
+        inputs:1,
+        outputs:1,
+        icon: "s2.png",
+        label: function() {
+            return this.name || "S2 FRBC RM";
+        },
+        oneditprepare: function() {
+            
+            $('#node-input-storage').typedInput({
+                type: 'json',
+                types: ['json']
+            });
+            $('#node-input-actuators').typedInput({
+                type: 'json',
+                types: ['json']
+            });
+        }
+    });
+</script>

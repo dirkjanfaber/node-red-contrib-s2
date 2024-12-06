@@ -1,0 +1,64 @@
+
+<script type="text/html" data-template-name="s2-rm-ombc">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-resourceId"><i class="fa fa-id-card"></i> Resource ID</label>
+        <input type="text" id="node-input-resourceId" placeholder="Resource ID">
+    </div>
+    
+    <div class="form-row">
+        <label for="node-input-operationModes"><i class="fa fa-list"></i> Operation Modes</label>
+        <input type="text" id="node-input-operationModes">
+    </div>
+    <div class="form-row">
+        <label for="node-input-transitions"><i class="fa fa-random"></i> Transitions</label>
+        <input type="text" id="node-input-transitions">
+    </div>
+</script>
+
+<script type="text/html" data-help-name="s2-rm-ombc">
+    <p>A Resource Manager node implementing the OMBC control type of the S2 protocol.</p>
+    <p>Operation Mode Based Control allows external control of device operation modes.</p>
+<h3>Inputs</h3>
+<dl class="message-properties">
+    <dt>payload
+        <span class="property-type">object</span>
+    </dt>
+    <dd>The S2 protocol message object.</dd>
+</dl>
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType('s2-rm-ombc',{
+        category: 'S2 Protocol',
+        color: '#87A980',
+        defaults: {
+            name: { value: "" },
+            resourceId: { value: "", required: true },
+            
+            operationModes: { value: [], required: true },
+            transitions: { value: [] },
+            timers: { value: [] }
+        },
+        inputs:1,
+        outputs:1,
+        icon: "s2.png",
+        label: function() {
+            return this.name || "S2 OMBC RM";
+        },
+        oneditprepare: function() {
+            
+            $('#node-input-operationModes').typedInput({
+                type: 'json',
+                types: ['json']
+            });
+            $('#node-input-transitions').typedInput({
+                type: 'json',
+                types: ['json']
+            });
+        }
+    });
+</script>
