@@ -6,25 +6,93 @@
     </div>
     <div class="form-row">
         <label for="node-input-resourceId"><i class="fa fa-id-card"></i> Resource ID</label>
-        <input type="text" id="node-input-resourceId" placeholder="Resource ID">
+        <input type="text" id="node-input-resourceId" placeholder="ppbc-unique-id">
+        <div class="form-tips">A unique identifier for this resource manager.</div>
     </div>
     
     <div class="form-row">
-        <label for="node-input-sequences"><i class="fa fa-list-ol"></i> Sequences</label>
+        <label for="node-input-sequences"><i class="fa fa-list-ol"></i> Power Sequences</label>
         <input type="text" id="node-input-sequences">
+        <div class="form-tips">Define power consumption sequences. Format: JSON array of sequence objects with timestamped power values.</div>
     </div>
 </script>
 
 <script type="text/html" data-help-name="s2-rm-ppbc">
     <p>A Resource Manager node implementing the PPBC control type of the S2 protocol.</p>
-    <p>Power Profile Based Control handles power profiles for planned operations.</p>
-<h3>Inputs</h3>
-<dl class="message-properties">
-    <dt>payload
-        <span class="property-type">object</span>
-    </dt>
-    <dd>The S2 protocol message object.</dd>
-</dl>
+    
+    
+    <p>Power Profile Based Control (PPBC) handles power profiles for planned operations.
+    Key features:</p>
+    <ul>
+        <li>Scheduled power consumption patterns</li>
+        <li>Predictable operation sequences</li>
+        <li>Time-based power management</li>
+    </ul>
+    <p>Typical applications:</p>
+    <ul>
+        <li>Washing machines and dishwashers</li>
+        <li>Industrial processes with fixed sequences</li>
+        <li>Batch processing equipment</li>
+    </ul>
+    
+    <h4>Configuration Example:</h4>
+    <pre>
+// Power Sequences:
+[
+  {
+    "sequence_id": "wash_cycle",
+    "steps": [
+      {"duration": 600, "power": 2000},
+      {"duration": 1800, "power": 500}
+    ]
+  }
+]</pre>
+
+    <h3>Properties</h3>
+    
+    <dl class="message-properties">
+        <dt>Power Sequences <span class="property-type">array</span></dt>
+        <dd>Defines power consumption sequences:
+            <ul>
+                <li>sequence_id: Unique sequence identifier</li>
+                <li>steps: Array of power levels and durations</li>
+                <li>constraints: Optional sequence constraints</li>
+            </ul>
+        </dd>
+    </dl>
+
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>payload
+            <span class="property-type">object</span>
+        </dt>
+        <dd>The S2 protocol message object. Must include a <code>message_type</code> field.</dd>
+    </dl>
+
+    <h3>Outputs</h3>
+    <dl class="message-properties">
+        <dt>payload <span class="property-type">object</span></dt>
+        <dd>The response message conforming to the S2 protocol.</dd>
+    </dl>
+
+    <h3>Details</h3>
+    <p>This node implements the S2 protocol Resource Manager for PPBC control type. 
+    It handles the following message types:</p>
+    <ul>
+        <li><code>PPBC.PowerProfileDefinition</code></li>
+        <li><code>PPBC.PowerProfileStatus</code></li>
+        <li><code>PPBC.ScheduleInstruction</code></li>
+        <li><code>PPBC.StartInterruptionInstruction</code></li>
+        <li><code>PPBC.EndInterruptionInstruction</code></li>
+    </ul>
+
+    <h3>Status</h3>
+    <ul>
+        <li><i class="fa fa-circle"></i> Grey - Waiting for input</li>
+        <li><i class="fa fa-circle"></i> Blue - Processing message</li>
+        <li><i class="fa fa-circle"></i> Green - Successfully processed</li>
+        <li><i class="fa fa-circle-thin"></i> Red - Error occurred</li>
+    </ul>
 </script>
 
 <script type="text/javascript">
@@ -33,15 +101,35 @@
         color: '#A98087',
         defaults: {
             name: { value: "" },
-            resourceId: { value: "", required: true },
+            resourceId: { 
+                value: "", 
+                required: true,
+                validate: function(v) { 
+                    return v && v.length > 0;
+                }
+            },
             
-            sequences: { value: [], required: true }
+            sequences: { 
+                value: [], 
+                required: true,
+                validate: function(v) {
+                    try {
+                        const seq = JSON.parse(v);
+                        return Array.isArray(seq) && seq.length > 0;
+                    } catch(e) {
+                        return false;
+                    }
+                }
+            }
         },
-        inputs:1,
-        outputs:1,
-        icon: "s2.png",
+        inputs: 1,
+        outputs: 1,
+        icon: "font-awesome/fa-area-chart",
         label: function() {
             return this.name || "S2 PPBC RM";
+        },
+        labelStyle: function() {
+            return this.name ? "node_label_italic" : "";
         },
         oneditprepare: function() {
             
@@ -49,6 +137,9 @@
                 type: 'json',
                 types: ['json']
             });
+        },
+        oneditsave: function() {
+            
         }
     });
 </script>

@@ -6,29 +6,111 @@
     </div>
     <div class="form-row">
         <label for="node-input-resourceId"><i class="fa fa-id-card"></i> Resource ID</label>
-        <input type="text" id="node-input-resourceId" placeholder="Resource ID">
+        <input type="text" id="node-input-resourceId" placeholder="ddbc-unique-id">
+        <div class="form-tips">A unique identifier for this resource manager.</div>
     </div>
     
     <div class="form-row">
         <label for="node-input-demandRate"><i class="fa fa-tachometer"></i> Demand Rate</label>
         <input type="text" id="node-input-demandRate">
+        <div class="form-tips">Define demand rate parameters. Format: JSON object with rate limits and thresholds.</div>
     </div>
     <div class="form-row">
         <label for="node-input-actuators"><i class="fa fa-cogs"></i> Actuators</label>
         <input type="text" id="node-input-actuators">
+        <div class="form-tips">Define actuator configurations. Format: JSON array of actuator objects.</div>
     </div>
 </script>
 
 <script type="text/html" data-help-name="s2-rm-ddbc">
     <p>A Resource Manager node implementing the DDBC control type of the S2 protocol.</p>
-    <p>Demand Driven Based Control handles on-demand power requirements.</p>
-<h3>Inputs</h3>
-<dl class="message-properties">
-    <dt>payload
-        <span class="property-type">object</span>
-    </dt>
-    <dd>The S2 protocol message object.</dd>
-</dl>
+    
+    
+    <p>Demand Driven Based Control (DDBC) handles on-demand power requirements.
+    Main features:</p>
+    <ul>
+        <li>Real-time power demand handling</li>
+        <li>Variable rate control</li>
+        <li>Demand-based optimization</li>
+    </ul>
+    <p>Typical use cases:</p>
+    <ul>
+        <li>Heat pumps</li>
+        <li>Variable speed drives</li>
+        <li>Demand-controlled ventilation</li>
+    </ul>
+    
+    <h4>Configuration Example:</h4>
+    <pre>
+// Demand Rate Configuration:
+{
+  "min_rate": 0,
+  "max_rate": 5000,
+  "ramp_rate": 1000
+}
+
+// Actuators:
+[
+  {
+    "id": "pump_1",
+    "type": "variable",
+    "power_range": {"min": 0, "max": 5000}
+  }
+]</pre>
+
+    <h3>Properties</h3>
+    
+    <dl class="message-properties">
+        <dt>Demand Rate <span class="property-type">object</span></dt>
+        <dd>Defines demand rate parameters:
+            <ul>
+                <li>min_rate: Minimum allowable rate</li>
+                <li>max_rate: Maximum allowable rate</li>
+                <li>ramp_rate: Maximum rate of change</li>
+            </ul>
+        </dd>
+        <dt>Actuators <span class="property-type">array</span></dt>
+        <dd>List of demand-responsive actuators:
+            <ul>
+                <li>id: Unique actuator identifier</li>
+                <li>type: Actuator type</li>
+                <li>power_range: Operating power range</li>
+            </ul>
+        </dd>
+    </dl>
+
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>payload
+            <span class="property-type">object</span>
+        </dt>
+        <dd>The S2 protocol message object. Must include a <code>message_type</code> field.</dd>
+    </dl>
+
+    <h3>Outputs</h3>
+    <dl class="message-properties">
+        <dt>payload <span class="property-type">object</span></dt>
+        <dd>The response message conforming to the S2 protocol.</dd>
+    </dl>
+
+    <h3>Details</h3>
+    <p>This node implements the S2 protocol Resource Manager for DDBC control type. 
+    It handles the following message types:</p>
+    <ul>
+        <li><code>DDBC.TimerStatus</code></li>
+        <li><code>DDBC.SystemDescription</code></li>
+        <li><code>DDBC.ActuatorStatus</code></li>
+        <li><code>DDBC.Instruction</code></li>
+        <li><code>DDBC.AverageDemandRateForecast</code></li>
+    </ul>
+
+    <h3>Status</h3>
+    <ul>
+        <li><i class="fa fa-circle"></i> Grey - Waiting for input</li>
+        <li><i class="fa fa-circle"></i> Blue - Processing message</li>
+        <li><i class="fa fa-circle"></i> Green - Successfully processed</li>
+        <li><i class="fa fa-circle-thin"></i> Red - Error occurred</li>
+    </ul>
 </script>
 
 <script type="text/javascript">
@@ -37,16 +119,46 @@
         color: '#8780A9',
         defaults: {
             name: { value: "" },
-            resourceId: { value: "", required: true },
+            resourceId: { 
+                value: "", 
+                required: true,
+                validate: function(v) { 
+                    return v && v.length > 0;
+                }
+            },
             
-            demandRate: { value: {}, required: true },
-            actuators: { value: [], required: true }
+            demandRate: { 
+                value: {}, 
+                required: true,
+                validate: function(v) {
+                    try {
+                        return typeof JSON.parse(v) === 'object';
+                    } catch(e) {
+                        return false;
+                    }
+                }
+            },
+            actuators: { 
+                value: [], 
+                required: true,
+                validate: function(v) {
+                    try {
+                        const act = JSON.parse(v);
+                        return Array.isArray(act) && act.length > 0;
+                    } catch(e) {
+                        return false;
+                    }
+                }
+            }
         },
-        inputs:1,
-        outputs:1,
-        icon: "s2.png",
+        inputs: 1,
+        outputs: 1,
+        icon: "font-awesome/fa-tachometer",
         label: function() {
             return this.name || "S2 DDBC RM";
+        },
+        labelStyle: function() {
+            return this.name ? "node_label_italic" : "";
         },
         oneditprepare: function() {
             
@@ -58,6 +170,11 @@
                 type: 'json',
                 types: ['json']
             });
+        },
+        oneditsave: function() {
+            
+            // Additional validation could be added here
+            
         }
     });
 </script>

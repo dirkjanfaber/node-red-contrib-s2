@@ -6,29 +6,117 @@
     </div>
     <div class="form-row">
         <label for="node-input-resourceId"><i class="fa fa-id-card"></i> Resource ID</label>
-        <input type="text" id="node-input-resourceId" placeholder="Resource ID">
+        <input type="text" id="node-input-resourceId" placeholder="ombc-unique-id">
+        <div class="form-tips">A unique identifier for this resource manager.</div>
     </div>
     
     <div class="form-row">
         <label for="node-input-operationModes"><i class="fa fa-list"></i> Operation Modes</label>
         <input type="text" id="node-input-operationModes">
+        <div class="form-tips">Define the available operation modes for your device. Format: JSON array of mode objects.</div>
     </div>
     <div class="form-row">
-        <label for="node-input-transitions"><i class="fa fa-random"></i> Transitions</label>
+        <label for="node-input-transitions"><i class="fa fa-random"></i> Allowed Transitions</label>
         <input type="text" id="node-input-transitions">
+        <div class="form-tips">Define which mode transitions are allowed. Format: JSON array of transition objects.</div>
     </div>
 </script>
 
 <script type="text/html" data-help-name="s2-rm-ombc">
     <p>A Resource Manager node implementing the OMBC control type of the S2 protocol.</p>
-    <p>Operation Mode Based Control allows external control of device operation modes.</p>
-<h3>Inputs</h3>
-<dl class="message-properties">
-    <dt>payload
-        <span class="property-type">object</span>
-    </dt>
-    <dd>The S2 protocol message object.</dd>
-</dl>
+    
+    
+    <p>Operation Mode Based Control (OMBC) allows external control of device operation modes. 
+    This node helps manage:</p>
+    <ul>
+        <li>Different operation modes of the device</li>
+        <li>Transitions between modes</li>
+        <li>Timing constraints for mode changes</li>
+    </ul>
+    <p>Typical use cases include managing:</p>
+    <ul>
+        <li>HVAC systems with multiple operation modes</li>
+        <li>Industrial equipment with different working states</li>
+        <li>Smart appliances with various programs</li>
+    </ul>
+    
+    <h4>Configuration Example:</h4>
+    <pre>
+// Operation Modes:
+[
+  {
+    "mode_id": "standby",
+    "description": "Low power standby mode",
+    "power_range": {"min": 5, "max": 10}
+  },
+  {
+    "mode_id": "active",
+    "description": "Normal operation mode",
+    "power_range": {"min": 100, "max": 200}
+  }
+]
+
+// Transitions:
+[
+  {
+    "from_mode": "standby",
+    "to_mode": "active",
+    "min_duration": 30
+  }
+]</pre>
+
+    <h3>Properties</h3>
+    
+    <dl class="message-properties">
+        <dt>Operation Modes <span class="property-type">array</span></dt>
+        <dd>List of possible operation modes for the device. Each mode should include:
+            <ul>
+                <li>mode_id: Unique identifier for the mode</li>
+                <li>description: Human-readable description</li>
+                <li>power_range: Expected power consumption range</li>
+            </ul>
+        </dd>
+        <dt>Transitions <span class="property-type">array</span></dt>
+        <dd>Defines allowed transitions between modes:
+            <ul>
+                <li>from_mode: Source mode ID</li>
+                <li>to_mode: Target mode ID</li>
+                <li>constraints: Optional transition constraints</li>
+            </ul>
+        </dd>
+    </dl>
+
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>payload
+            <span class="property-type">object</span>
+        </dt>
+        <dd>The S2 protocol message object. Must include a <code>message_type</code> field.</dd>
+    </dl>
+
+    <h3>Outputs</h3>
+    <dl class="message-properties">
+        <dt>payload <span class="property-type">object</span></dt>
+        <dd>The response message conforming to the S2 protocol.</dd>
+    </dl>
+
+    <h3>Details</h3>
+    <p>This node implements the S2 protocol Resource Manager for OMBC control type. 
+    It handles the following message types:</p>
+    <ul>
+        <li><code>OMBC.TimerStatus</code></li>
+        <li><code>OMBC.SystemDescription</code></li>
+        <li><code>OMBC.Status</code></li>
+        <li><code>OMBC.Instruction</code></li>
+    </ul>
+
+    <h3>Status</h3>
+    <ul>
+        <li><i class="fa fa-circle"></i> Grey - Waiting for input</li>
+        <li><i class="fa fa-circle"></i> Blue - Processing message</li>
+        <li><i class="fa fa-circle"></i> Green - Successfully processed</li>
+        <li><i class="fa fa-circle-thin"></i> Red - Error occurred</li>
+    </ul>
 </script>
 
 <script type="text/javascript">
@@ -37,20 +125,51 @@
         color: '#87A980',
         defaults: {
             name: { value: "" },
-            resourceId: { value: "", required: true },
+            resourceId: { 
+                value: "", 
+                required: true,
+                validate: function(v) { 
+                    return v && v.length > 0;
+                }
+            },
             
-            operationModes: { value: [], required: true },
-            transitions: { value: [] },
+            operationModes: { 
+                value: [], 
+                required: true,
+                validate: function(v) {
+                    try {
+                        const modes = JSON.parse(v);
+                        return Array.isArray(modes) && modes.length > 0;
+                    } catch(e) {
+                        return false;
+                    }
+                }
+            },
+            transitions: { 
+                value: [],
+                validate: function(v) {
+                    try {
+                        const trans = JSON.parse(v);
+                        return Array.isArray(trans);
+                    } catch(e) {
+                        return false;
+                    }
+                }
+            },
             timers: { value: [] }
         },
-        inputs:1,
-        outputs:1,
-        icon: "s2.png",
+        inputs: 1,
+        outputs: 1,
+        icon: "font-awesome/fa-random",
         label: function() {
             return this.name || "S2 OMBC RM";
         },
+        labelStyle: function() {
+            return this.name ? "node_label_italic" : "";
+        },
         oneditprepare: function() {
             
+            // Initialize JSON input fields
             $('#node-input-operationModes').typedInput({
                 type: 'json',
                 types: ['json']
@@ -59,6 +178,9 @@
                 type: 'json',
                 types: ['json']
             });
+        },
+        oneditsave: function() {
+            
         }
     });
 </script>

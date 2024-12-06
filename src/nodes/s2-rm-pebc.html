@@ -6,25 +6,88 @@
     </div>
     <div class="form-row">
         <label for="node-input-resourceId"><i class="fa fa-id-card"></i> Resource ID</label>
-        <input type="text" id="node-input-resourceId" placeholder="Resource ID">
+        <input type="text" id="node-input-resourceId" placeholder="pebc-unique-id">
+        <div class="form-tips">A unique identifier for this resource manager.</div>
     </div>
     
     <div class="form-row">
-        <label for="node-input-limitRanges"><i class="fa fa-bars"></i> Limit Ranges</label>
+        <label for="node-input-limitRanges"><i class="fa fa-bars"></i> Power Limit Ranges</label>
         <input type="text" id="node-input-limitRanges">
+        <div class="form-tips">Define the allowable power ranges. Format: JSON array of range objects with min/max values.</div>
     </div>
 </script>
 
 <script type="text/html" data-help-name="s2-rm-pebc">
     <p>A Resource Manager node implementing the PEBC control type of the S2 protocol.</p>
-    <p>Power Envelope Based Control manages power consumption within defined limits.</p>
-<h3>Inputs</h3>
-<dl class="message-properties">
-    <dt>payload
-        <span class="property-type">object</span>
-    </dt>
-    <dd>The S2 protocol message object.</dd>
-</dl>
+    
+    
+    <p>Power Envelope Based Control (PEBC) manages power consumption within defined limits.
+    This node helps control:</p>
+    <ul>
+        <li>Power consumption boundaries</li>
+        <li>Dynamic power adjustments</li>
+        <li>Load balancing</li>
+    </ul>
+    <p>Typical use cases:</p>
+    <ul>
+        <li>Grid-connected devices with power constraints</li>
+        <li>Energy management systems</li>
+        <li>Demand response programs</li>
+    </ul>
+    
+    <h4>Configuration Example:</h4>
+    <pre>
+// Power Limit Ranges:
+[
+  {
+    "time_period": {"start": "09:00", "end": "17:00"},
+    "power_range": {"min": 0, "max": 1000}
+  }
+]</pre>
+
+    <h3>Properties</h3>
+    
+    <dl class="message-properties">
+        <dt>Power Limit Ranges <span class="property-type">array</span></dt>
+        <dd>Defines the allowable power ranges:
+            <ul>
+                <li>time_period: Optional time constraints</li>
+                <li>power_range: Power limits (min/max)</li>
+                <li>ramp_limits: Optional rate of change constraints</li>
+            </ul>
+        </dd>
+    </dl>
+
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>payload
+            <span class="property-type">object</span>
+        </dt>
+        <dd>The S2 protocol message object. Must include a <code>message_type</code> field.</dd>
+    </dl>
+
+    <h3>Outputs</h3>
+    <dl class="message-properties">
+        <dt>payload <span class="property-type">object</span></dt>
+        <dd>The response message conforming to the S2 protocol.</dd>
+    </dl>
+
+    <h3>Details</h3>
+    <p>This node implements the S2 protocol Resource Manager for PEBC control type. 
+    It handles the following message types:</p>
+    <ul>
+        <li><code>PEBC.PowerConstraints</code></li>
+        <li><code>PEBC.EnergyConstraint</code></li>
+        <li><code>PEBC.Instruction</code></li>
+    </ul>
+
+    <h3>Status</h3>
+    <ul>
+        <li><i class="fa fa-circle"></i> Grey - Waiting for input</li>
+        <li><i class="fa fa-circle"></i> Blue - Processing message</li>
+        <li><i class="fa fa-circle"></i> Green - Successfully processed</li>
+        <li><i class="fa fa-circle-thin"></i> Red - Error occurred</li>
+    </ul>
 </script>
 
 <script type="text/javascript">
@@ -33,16 +96,36 @@
         color: '#A9A980',
         defaults: {
             name: { value: "" },
-            resourceId: { value: "", required: true },
+            resourceId: { 
+                value: "", 
+                required: true,
+                validate: function(v) { 
+                    return v && v.length > 0;
+                }
+            },
             
-            limitRanges: { value: [], required: true },
+            limitRanges: { 
+                value: [], 
+                required: true,
+                validate: function(v) {
+                    try {
+                        const ranges = JSON.parse(v);
+                        return Array.isArray(ranges) && ranges.length > 0;
+                    } catch(e) {
+                        return false;
+                    }
+                }
+            },
             consequenceType: { value: "DEFER" }
         },
-        inputs:1,
-        outputs:1,
-        icon: "s2.png",
+        inputs: 1,
+        outputs: 1,
+        icon: "font-awesome/fa-bolt",
         label: function() {
             return this.name || "S2 PEBC RM";
+        },
+        labelStyle: function() {
+            return this.name ? "node_label_italic" : "";
         },
         oneditprepare: function() {
             
@@ -50,6 +133,9 @@
                 type: 'json',
                 types: ['json']
             });
+        },
+        oneditsave: function() {
+            
         }
     });
 </script>

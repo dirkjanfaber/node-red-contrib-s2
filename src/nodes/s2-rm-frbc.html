@@ -6,29 +6,114 @@
     </div>
     <div class="form-row">
         <label for="node-input-resourceId"><i class="fa fa-id-card"></i> Resource ID</label>
-        <input type="text" id="node-input-resourceId" placeholder="Resource ID">
+        <input type="text" id="node-input-resourceId" placeholder="frbc-unique-id">
+        <div class="form-tips">A unique identifier for this resource manager.</div>
     </div>
     
     <div class="form-row">
-        <label for="node-input-storage"><i class="fa fa-database"></i> Storage</label>
+        <label for="node-input-storage"><i class="fa fa-database"></i> Storage Configuration</label>
         <input type="text" id="node-input-storage">
+        <div class="form-tips">Define storage system parameters. Format: JSON object with capacity and constraints.</div>
     </div>
     <div class="form-row">
         <label for="node-input-actuators"><i class="fa fa-cogs"></i> Actuators</label>
         <input type="text" id="node-input-actuators">
+        <div class="form-tips">Define actuator configurations. Format: JSON array of actuator objects.</div>
     </div>
 </script>
 
 <script type="text/html" data-help-name="s2-rm-frbc">
     <p>A Resource Manager node implementing the FRBC control type of the S2 protocol.</p>
-    <p>Fill Rate Based Control manages storage systems like batteries.</p>
-<h3>Inputs</h3>
-<dl class="message-properties">
-    <dt>payload
-        <span class="property-type">object</span>
-    </dt>
-    <dd>The S2 protocol message object.</dd>
-</dl>
+    
+    
+    <p>Fill Rate Based Control (FRBC) manages storage systems like batteries.
+    Key aspects:</p>
+    <ul>
+        <li>State of charge management</li>
+        <li>Charging/discharging rates</li>
+        <li>Storage capacity constraints</li>
+    </ul>
+    <p>Common applications:</p>
+    <ul>
+        <li>Battery storage systems</li>
+        <li>Thermal storage units</li>
+        <li>Water storage tanks</li>
+    </ul>
+    
+    <h4>Configuration Example:</h4>
+    <pre>
+// Storage Configuration:
+{
+  "capacity": 10000,
+  "max_charge_rate": 2000,
+  "max_discharge_rate": 2000
+}
+
+// Actuators:
+[
+  {
+    "id": "inverter_1",
+    "type": "bidirectional",
+    "power_range": {"min": -2000, "max": 2000}
+  }
+]</pre>
+
+    <h3>Properties</h3>
+    
+    <dl class="message-properties">
+        <dt>Storage Configuration <span class="property-type">object</span></dt>
+        <dd>Defines storage system parameters:
+            <ul>
+                <li>capacity: Total storage capacity</li>
+                <li>max_charge_rate: Maximum charging rate</li>
+                <li>max_discharge_rate: Maximum discharge rate</li>
+            </ul>
+        </dd>
+        <dt>Actuators <span class="property-type">array</span></dt>
+        <dd>List of actuators that can affect storage:
+            <ul>
+                <li>id: Unique actuator identifier</li>
+                <li>type: Actuator type (e.g., unidirectional, bidirectional)</li>
+                <li>power_range: Operating power range</li>
+            </ul>
+        </dd>
+    </dl>
+
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>payload
+            <span class="property-type">object</span>
+        </dt>
+        <dd>The S2 protocol message object. Must include a <code>message_type</code> field.</dd>
+    </dl>
+
+    <h3>Outputs</h3>
+    <dl class="message-properties">
+        <dt>payload <span class="property-type">object</span></dt>
+        <dd>The response message conforming to the S2 protocol.</dd>
+    </dl>
+
+    <h3>Details</h3>
+    <p>This node implements the S2 protocol Resource Manager for FRBC control type. 
+    It handles the following message types:</p>
+    <ul>
+        <li><code>FRBC.TimerStatus</code></li>
+        <li><code>FRBC.SystemDescription</code></li>
+        <li><code>FRBC.ActuatorStatus</code></li>
+        <li><code>FRBC.StorageStatus</code></li>
+        <li><code>FRBC.LeakageBehaviour</code></li>
+        <li><code>FRBC.Instruction</code></li>
+        <li><code>FRBC.UsageForecast</code></li>
+        <li><code>FRBC.FillLevelTargetProfile</code></li>
+    </ul>
+
+    <h3>Status</h3>
+    <ul>
+        <li><i class="fa fa-circle"></i> Grey - Waiting for input</li>
+        <li><i class="fa fa-circle"></i> Blue - Processing message</li>
+        <li><i class="fa fa-circle"></i> Green - Successfully processed</li>
+        <li><i class="fa fa-circle-thin"></i> Red - Error occurred</li>
+    </ul>
 </script>
 
 <script type="text/javascript">
@@ -37,16 +122,46 @@
         color: '#80A987',
         defaults: {
             name: { value: "" },
-            resourceId: { value: "", required: true },
+            resourceId: { 
+                value: "", 
+                required: true,
+                validate: function(v) { 
+                    return v && v.length > 0;
+                }
+            },
             
-            storage: { value: {}, required: true },
-            actuators: { value: [], required: true }
+            storage: { 
+                value: {}, 
+                required: true,
+                validate: function(v) {
+                    try {
+                        return typeof JSON.parse(v) === 'object';
+                    } catch(e) {
+                        return false;
+                    }
+                }
+            },
+            actuators: { 
+                value: [], 
+                required: true,
+                validate: function(v) {
+                    try {
+                        const act = JSON.parse(v);
+                        return Array.isArray(act) && act.length > 0;
+                    } catch(e) {
+                        return false;
+                    }
+                }
+            }
         },
-        inputs:1,
-        outputs:1,
-        icon: "s2.png",
+        inputs: 1,
+        outputs: 1,
+        icon: "font-awesome/fa-battery-half",
         label: function() {
             return this.name || "S2 FRBC RM";
+        },
+        labelStyle: function() {
+            return this.name ? "node_label_italic" : "";
         },
         oneditprepare: function() {
             
@@ -58,6 +173,11 @@
                 type: 'json',
                 types: ['json']
             });
+        },
+        oneditsave: function() {
+            
+            // Additional validation could be added here
+            
         }
     });
 </script>
